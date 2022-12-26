@@ -1,0 +1,51 @@
+config.local.json
+obj/
+node_modules/
+coverage/
+.nyc_output/
+.idea/
+.vscode/
+npm-debug.log
+static-assets/
+deployed-assets.json
+.used-ports
+.container-volumes
+
+endpoint-list-csv/
+
+test/screenshots/test
+test/screenshots/reference
+test/screenshots/compare.json
+test/cypress/saas/videos
+test/cypress/saas/screenshots
+test/cypress/saas/cypress
+test/cypress/onprem/videos
+test/cypress/onprem/screenshots
+test/cypress/onprem/cypress
+*/obj/*
+
+public/frontend/*
+public/style/build/*
+public/js/build/*
+backstop_data/*
+*.md5.*
+
+# Diagnostic reports (https://nodejs.org/api/report.html)
+report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
+
+dist/
+
+# File to allow you to opt out of linting on git push
+.opt-out
+
+# ESLint cache
+.eslintcache*
+
+.vscode/
+
+node_modules/
+
+coverage/
+
+# Env files
+.env

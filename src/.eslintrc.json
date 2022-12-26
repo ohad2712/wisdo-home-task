@@ -1,0 +1,17 @@
+{
+  "rules": {
+    "@typescript-eslint/no-var-requires": "error",
+    "no-restricted-imports": [
+      "error",
+      {
+        "patterns": ["../../**/frontend", "../**/src/**/*"]
+      }
+    ],
+    "no-restricted-modules": [
+      "error",
+      {
+        "patterns": ["../../**/frontend", "../**/src/**/*"]
+      }
+    ]
+  }
+}
