@@ -7,7 +7,6 @@ export const middleware = (
   res: express.Response,
   next: express.NextFunction,
 ) => {
-  console.log('In middleware function');
   next();
 };
 
