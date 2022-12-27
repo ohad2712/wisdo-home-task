@@ -1,6 +1,6 @@
 import request from 'supertest';
 // import express from 'express';
-import mongoose from 'mongoose';
+import mongoose, { Types } from 'mongoose';
 
 import app from '../../src/app';
 import { fetchUserIdMiddleware } from '../../src/middleware/authentication';
@@ -61,9 +61,71 @@ describe('App routes', () => {
     });
   });
 
-  describe('POST /posts', () => {
-    jest.setTimeout(1000000);
+  describe('GET /posts/:id', () => {
+    let user;
+    let post;
+
+    beforeEach(async () => {
+      // Adding a user for the sake of authenticating
+      user = new UserModel({
+        name: 'Ohad',
+        communities: [],
+      });
+
+      await user.save();
+
+      post = new PostModel({
+        title: 'Test title',
+        summary: 'Test summary',
+        body: 'Test body',
+      });
+      
+      await post.save(); 
+    });
+
+    afterEach(async () => {
+      // Delete all posts and users from the database
+      await PostModel.remove({});
+      await UserModel.remove({});
+    });
+
+    it('should return a post if it exists', async () => {    
+      // Act
+      const response = await request(app)
+        .get(`/app/posts/${post._id}`)
+        .set({
+          mongodburi: mongodbUri,
+          userid: user._id,
+        });
   
+      // Assert
+      expect(response.status).toBe(200);
+      expect(response.body.title).toBe('Test title');
+      expect(response.body.summary).toBe('Test summary');
+      expect(response.body.body).toBe('Test body');
+    });
+  
+    it('should return an empty object if the post does not exist', async () => {
+      // Arrange
+      // Generate a non existing post ObjectId
+      const notExistingPostId = new Types.ObjectId();
+      console.log(post._id);
+      
+      // Act
+      const response = await request(app)
+        .get(`/app/posts/${notExistingPostId}`)
+        .set({
+          mongodburi: mongodbUri,
+          userid: user._id,
+        });
+
+      // Assert
+      expect(response.status).toBe(200);
+      expect(response.body).toEqual({});
+    });
+  });
+
+  describe('POST /posts', () => {
     it('should allow a user to create a post in one of his communities', async () => {    
       // Arrange
       const user = new UserModel({

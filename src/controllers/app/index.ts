@@ -46,6 +46,21 @@ export async function createPost (req: Request, res: Response, next: NextFunctio
   }
 }
 
+export async function getPost (req: Request, res: Response) {
+  const postId = req.params.id;
+  let post: Post | null;
+
+  // Fetch the desired post from the database using the postId
+  try {
+    post = await PostModel.findById(postId);
+
+    // Return the post in the response
+    res.status(200).send(post);
+  } catch (err) {
+    res.status(500).send(err);
+  }
+}
+
 async function savePostToDatabase (post: Post): Promise<PostModel> {
   const postObject = new PostModel(post);
   
