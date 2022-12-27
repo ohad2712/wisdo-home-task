@@ -1,8 +1,8 @@
 import { NextFunction, Request, Response } from 'express';
 
 import { CustomError } from '../../errorUtils';
-import { Roles } from '../../globals';
 import { CommunityModel, PostModel, UserModel } from '../../models';
+import { getAllModeratorsAndSuperModerators } from '../../services/user';
 
 import type { Community, Post, User } from '../../types';
 
@@ -12,6 +12,7 @@ export async function createPost (req: Request, res: Response, next: NextFunctio
   let communityObj: Community | null;
 
   try {
+    // TODO: Move all queries to services
     authorUserObj = await UserModel.findById(author);
     communityObj = await CommunityModel.findById(community);
     
@@ -35,23 +36,25 @@ export async function createPost (req: Request, res: Response, next: NextFunctio
 
   try {
     // Save the post to the database
-    await savePostToDatabase(post);
+    const postObject = await savePostToDatabase(post);
 
-    scanPostAndSendAlertEmail(post);
+    scanPostAndSendAlertEmail(postObject);
 
-    res.send(post);
+    res.send(postObject);
   } catch (err) {
-    console.error('An error has occurred during the save of a new post', err);
+    return next(new CustomError(400 ,`An error has occurred during the save of a new post: ${err}`));
   }
 }
 
-async function savePostToDatabase (post: Post): Promise<void> {
+async function savePostToDatabase (post: Post): Promise<PostModel> {
   const postObject = new PostModel(post);
   
   await postObject.save();
+
+  return postObject;
 }
 
-async function scanPostAndSendAlertEmail(post: Post) {
+async function scanPostAndSendAlertEmail(post: PostModel) {
   // This can be another collection in the DB as well, but for the purpose of this exercise I'll have stored in-memory
   const watchListWords = ['danger', 'warning', 'alert'];
   
@@ -68,25 +71,6 @@ async function scanPostAndSendAlertEmail(post: Post) {
   }
 }
 
-export async function getAllModeratorsAndSuperModerators(): Promise<string[]> {
-  let moderatorEmailAddresses: string[] = [];
-  try {
-    // TODO: Move this query to a dedicated User service
-    const allModerators = await UserModel.find({ 
-        role: { $in: [Roles.MODERATOR, Roles.SUPER_MODERATOR] },
-        email: { $exists: true } 
-    });
-
-    moderatorEmailAddresses = allModerators.filter((moderator) => moderator.email).map((moderator) => moderator.email!);
-
-    return moderatorEmailAddresses;
-  } catch (err) {
-    console.error('Error when trying to get all moderators and super moderators from DB', err);
-  }
-
-  return moderatorEmailAddresses;
-}
-
 export function sendEmail(to: string[], subject: string, body: string) {
-  console.log("sendEmail called", {to, subject, body});
+  console.log('sendEmail called', {to, subject, body});
 }

@@ -7,8 +7,7 @@ import { fetchUserIdMiddleware } from '../../src/middleware/authentication';
 import { NextFunction, Request, Response } from 'express';
 import { CommunityModel, PostModel, UserModel } from '../../src/models';
 import { disconnectFromDb } from '../../src/dbUtils';
-import * as appController from '../../src/controllers/app';
-// import { createPost } from '../../src/controllers/app';
+import * as userService from '../../src/services/user';
 
 const mongodbUri = 'mongodb://localhost:27017/test';
 // Arrange
@@ -187,74 +186,65 @@ describe('App routes', () => {
       expect(response.body.summary).toBe('This is a test post with more than 100 words. The system should generate a summary by selecting the first 100 words of the body.');
     });
 
-    // describe('Content watching detected alert', () => {
-    //   it.only('should send an email alert for watchlist words that exist in the created post', async () => {
-    //     // Arrange
-    //     const user = new UserModel({
-    //       name: 'Ohad',
-    //       communities: [],
-    //     });
-    //     const community = new CommunityModel({
-    //       title: 'Test Community',
-    //     });
-    //     await user.save();
-    //     await community.save();
+    describe('Content watching detected alert', () => {
+      beforeEach(() => {
+        jest.resetAllMocks();
+      });
+
+      it('should send an email alert for watchlist words that exist in the created post', async () => {
+        // Arrange
+        const user = new UserModel({
+          name: 'Ohad',
+          communities: [],
+        });
+        const community = new CommunityModel({
+          title: 'Test Community',
+        });
+        await user.save();
+        await community.save();
     
-    //     // Add the community to the user's communities list
-    //     user.communities.push(community._id);
-    //     await user.save();
+        // Add the community to the user's communities list
+        user.communities.push(community._id);
+        await user.save();
 
-    //     const watchlistedWordExample = 'danger';
-    //     const post = {
-    //       title: 'Test post',
-    //       body: `This post contains a watchlist word, such as '${watchlistedWordExample}'`,
-    //     };
-    //     const moderatorEmailAddresses = [
-    //       'moderator1@email.com',
-    //       'super_moderator@email.com',
-    //     ]; 
+        const watchlistedWordExample = 'danger';
+        const post = {
+          title: 'Test post',
+          body: `This post contains a watchlist word, such as '${watchlistedWordExample}'`,
+        };
+        const moderatorEmailAddresses = [
+          'moderator1@email.com',
+          'super_moderator@email.com',
+        ]; 
 
-    //     jest.spyOn(appController, 'getAllModeratorsAndSuperModerators')
-    //       .mockResolvedValue(moderatorEmailAddresses);
-    //     const spy = jest.spyOn(appController, 'sendEmail');
+        // Set mock for moderators find
+        jest.spyOn(userService, 'getAllModeratorsAndSuperModerators')
+          .mockResolvedValue(moderatorEmailAddresses);
+
+        const spy = jest.spyOn(console, 'log');
   
-    //     // Act
-    //     const response = await request(app)
-    //       .post('/app/posts')
-    //       .send({
-    //         post,
-    //         community: community._id,
-    //         author: user._id,
-    //       })
-    //       .set({
-    //         mongodburi: mongodbUri,
-    //         userid: user._id,
-    //       });
+        // Act
+        const response = await request(app)
+          .post('/app/posts')
+          .send({
+            post,
+            community: community._id,
+            author: user._id,
+          })
+          .set({
+            mongodburi: mongodbUri,
+            userid: user._id,
+          });
 
-    //     expect(spy).toHaveBeenCalledWith({
-    //       to: moderatorEmailAddresses,
-    //       subject: 'Watch List Alert',
-    //       body: `A new post has been added that includes the watch list word "${watchlistedWordExample}".\nView the post at: http://localhost:${process?.env?.PORT || 8080}/app/posts/${response.body.post._id}`,
-    //     });
-    //   });
-    // });
-  
-  // // Content watching detected alert
-  // it('system sends email alert for watchlist words in post', async () => {
-  //   const userId = fetchDummyUserId();
-  //   const communityId = '123';
-  //   const post = {
-  //     title: 'Test post',
-  //     body: 'This post contains a watchlist word',
-  //   };
-  //   const spy = jest.spyOn(console, 'log');
-  //   await uploadPost(userId, communityId, post);
-  //   expect(spy).toHaveBeenCalledWith('sendEmail called', {
-  //     to: ['moderators', 'super moderators'],
-  //     subject: 'Content watchlist detected',
-  //     body: 'This post contains a watchlist word. Click the link to view the post: <link to API for fetching the uploaded post>',
-  //   });
-  // });
+        // Assert
+        expect(spy).toHaveBeenCalled();
+        expect(spy).toHaveBeenCalledWith('sendEmail called',{
+          to: moderatorEmailAddresses,
+          subject: 'Watch List Alert',
+          body: `A new post has been added that includes the watch list word "${watchlistedWordExample}".\nView the post at: http://localhost:${process?.env?.PORT || 8080}/app/posts/${response.body._id}`,
+        });
+      });
+    });
   
   // // Feed relevance functionality
   // it('feed is ranked by relevance score in descending order', async () => {
