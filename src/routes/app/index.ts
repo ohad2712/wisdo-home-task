@@ -1,7 +1,6 @@
 import { newRouter } from '../createRouter';
-import { createPost, getPost } from '../../controllers/app';
+import { router as postsRouter } from './posts';
 
 export const router = newRouter();
 
-router.post('/posts', createPost); // TODO: create router for each entity
-router.get('/posts/:id', getPost);
+router.use('/posts', postsRouter);
