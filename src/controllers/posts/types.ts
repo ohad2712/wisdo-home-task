@@ -1,4 +1,5 @@
 import type { Request } from 'express';
+
 import { Community, Post, User } from '../../types';
 
 export interface CreatePostBody extends Request<{}, {}, {}> {

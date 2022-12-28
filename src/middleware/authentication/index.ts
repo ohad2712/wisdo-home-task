@@ -1,10 +1,10 @@
 import { Request, Response, NextFunction } from 'express';
 import mongoose from 'mongoose';
 
-import { IGetUserAuthInfoRequest } from '../../types';
-
 import { UserModel } from './../../models';
 import { CustomError } from '../../errorUtils';
+
+import { IGetUserAuthInfoRequest } from '../../types';
 
 const defaultMongodbUri = 'mongodb://localhost:27017/my-db';
 

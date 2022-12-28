@@ -1,16 +1,16 @@
 import request from 'supertest';
-// import express from 'express';
 import mongoose, { Types } from 'mongoose';
+import { NextFunction, Request, Response } from 'express';
 
 import app from '../../src/app';
 import { fetchUserIdMiddleware } from '../../src/middleware/authentication';
-import { NextFunction, Request, Response } from 'express';
 import { CommunityModel, PostModel, UserModel } from '../../src/models';
 import { disconnectFromDb } from '../../src/dbUtils';
-import * as userService from '../../src/services/user';
+import * as userService from '../../src/services/users';
+import * as userController from '../../src/controllers/users';
+import { generateCommunities, generatePosts, generateUsers } from '../utils/app';
 
 const mongodbUri = 'mongodb://localhost:27017/test';
-// Arrange
 
 describe('App routes', () => {
   beforeAll(async ()=> {
@@ -20,8 +20,6 @@ describe('App routes', () => {
   });
 
   beforeEach(async () => {
-    // TODO: edit connectToDb to do an async function so that we can await it here
-    // connectToDb(mongodbUri);
     mongoose.connection.useDb('test');
   });
 
@@ -109,7 +107,6 @@ describe('App routes', () => {
       // Arrange
       // Generate a non existing post ObjectId
       const notExistingPostId = new Types.ObjectId();
-      console.log(post._id);
       
       // Act
       const response = await request(app)
@@ -307,51 +304,305 @@ describe('App routes', () => {
         });
       });
     });
-  
-  // // Feed relevance functionality
-  // it('feed is ranked by relevance score in descending order', async () => {
-  //   const userId = fetchDummyUserId();
-  //   const communities = ['123', '456'];
-  //   const feed = await getFeed(userId, communities);
-  //   expect(feed).toBeSortedBy('relevance', 'desc');
-  // });
-  
-  // it('feed includes only posts from requesting user’s communities', async () => {
-  //   const userId = fetchDummyUserId();
-  //   const communities = ['123', '456'];
-  //   const feed = await getFeed(userId, communities);
-  //   expect(feed.every((post) => communities.includes(post.communityId))).toBe(true);
-  // });
-  
-  // it('feed ranks posts from same country higher, even if weighted score is lower', async () => {
-  //   const userId = fetchDummyUserId();
-  //   const communities = ['123', '456'];
-  //   const feed = await getFeed(userId, communities);
-  //   const country = 'US';
-  //   const sameCountryPosts = feed.filter((post) => post.author.country === country);
-  //   const otherCountryPosts = feed.filter((post) => post.author.country !== country);
-  //   expect(sameCountryPosts).toBeSortedBefore(otherCountryPosts);
-  // });
-  
-  // it('feed ranks posts with highest weighted score first', async () => {
-  //   const userId = fetchDummyUserId();
-  //   const communities = ['123', '456'];
-  //   const feed = await getFeed(userId, communities);
-  //   const country = 'US';
-  //   const sameCountryPosts = feed.filter((post) => post.author.country === country);
-  //   expect(sameCountryPosts).toBeSortedBy((post) => post.weightedScore, 'desc');
-  // });
-  
-  // it('feed returns empty array if no posts are found from requesting user’s communities', async () => {
-  //   const userId = fetchDummyUserId();
-  //   const communities = ['789'];
-  //   const feed = await getFeed(userId, communities);
-  //   expect(feed).toEqual([]);
-  // });
   });
+
+  describe('GET /users/:id/feed', () => {
+    it('should only include posts that belong to one of the requesting user\'s communities', async () => {
+      // Arrange
+      const communitiesData = [
+        { _id: new Types.ObjectId(1) },
+        { _id: new Types.ObjectId(2) },
+        { _id: new Types.ObjectId(3) },
+      ];
+
+      const usersData = [
+        { _id: new Types.ObjectId(1), communities: [1, 3].map((id) => communitiesData[id - 1]._id) },
+      ];
+
+      const postsData = [
+        { _id: new Types.ObjectId(1), community: communitiesData[0]._id, likes: 10, body: 'x'.repeat(20) },
+        { _id: new Types.ObjectId(2), community: communitiesData[1]._id, likes: 15, body: 'x'.repeat(25) },
+        { _id: new Types.ObjectId(3), community: communitiesData[2]._id, likes: 5, body: 'x'.repeat(10) },
+      ];
+
+      await generateCommunities(communitiesData);
+      await generateUsers(usersData);
+      await generatePosts(postsData);
+      
+      // Ignore the sorting mechanism. We just need to check the communities
+      jest.spyOn(userController, 'sortPosts').mockImplementation((arr) => arr);
+
+      // Act
+      const response = await request(app)
+        .get(`/app/users/${usersData[0]._id}/feed`)
+        .set({
+          mongodburi: mongodbUri,
+          userid: usersData[0]._id,
+        });      
+
+      // Assert
+      expect(response.body).toHaveLength(2);
+      expect(response.body).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            _id: postsData[0]._id.toString(),
+            community: communitiesData[0]._id.toString(),
+            likes: postsData[0].likes,
+            body: postsData[0].body,
+          }),
+          expect.objectContaining({
+            _id: postsData[2]._id.toString(),
+            community: communitiesData[2]._id.toString(),
+            likes: postsData[2].likes,
+            body: postsData[2].body,
+          })
+        ])
+      );
+    });
+
+    it('should rank posts where the post author is from the same country first', async () => {
+      // Arrange
+      const communitiesData = [
+        { _id: new Types.ObjectId(1) },
+      ];
+
+      const usersData = [
+        { 
+          _id: new Types.ObjectId(1),
+          communities: [communitiesData[0]._id],
+          country: 'Israel'
+        },
+        { 
+          _id: new Types.ObjectId(2),
+          communities: [communitiesData[0]._id],
+          country: 'USA'
+        },
+        {
+          _id: new Types.ObjectId(3),
+          communities: [communitiesData[0]._id],
+          country: 'Israel'
+        },
+
+        // The test user
+        { 
+          _id: new Types.ObjectId(4),
+          communities: [communitiesData[0]._id],
+          country: 'Israel'
+        },
+      ];
+
+      const postsData = [
+        { 
+          _id: new Types.ObjectId(1),
+          community: communitiesData[0]._id,
+          likes: 10,
+          body: 'x'.repeat(20),
+          author: usersData[0]._id,
+        },
+        { 
+          _id: new Types.ObjectId(2),
+          community: communitiesData[0]._id,
+          likes: 15,
+          body: 'x'.repeat(25),
+          author: usersData[1]._id,
+        },
+        { 
+          _id: new Types.ObjectId(3),
+          community: communitiesData[0]._id,
+          likes: 5,
+          body: 'x'.repeat(10),
+          author: usersData[2]._id,
+        },
+      ];
+
+      await generateCommunities(communitiesData);
+      await generateUsers(usersData);
+      await generatePosts(postsData);
+      
+      const testUser = usersData[3];
+
+      // Act
+      const response = await request(app)
+        .get(`/app/users/${testUser._id}/feed`)
+        .set({
+          mongodburi: mongodbUri,
+          userid: testUser._id,
+        });      
+
+      // Assert
+      expect(response.body).toHaveLength(3);
+      expect(response.body).toEqual([
+          expect.objectContaining({
+            likes: postsData[0].likes,
+            body: postsData[0].body,
+            author: expect.objectContaining({
+              country: usersData[0].country, // Israel
+            }),
+          }),
+          expect.objectContaining({
+            likes: postsData[2].likes,
+            body: postsData[2].body,
+            author: expect.objectContaining({
+              country: usersData[2].country, // Israel
+            }),
+          }),
+          expect.objectContaining({
+            likes: postsData[1].likes,
+            body: postsData[1].body,
+            author: expect.objectContaining({
+              country: usersData[1].country, // USA
+            }),
+          }),
+        ]);
+    });
+
+    it('should rank posts based on the weighted score', async () => {
+      // Arrange
+      const communitiesData = [
+        { _id: new Types.ObjectId(1) },
+      ];
+
+      const usersData = [
+        { 
+          _id: new Types.ObjectId(1),
+          communities: [communitiesData[0]._id],
+          country: 'Israel'
+        },
+      ];
+
+      const postsData = [
+        { 
+          _id: new Types.ObjectId(1),
+          community: communitiesData[0]._id,
+          likes: 10,
+          body: 'x'.repeat(20),
+          author: usersData[0]._id,
+        },
+        { 
+          _id: new Types.ObjectId(2),
+          community: communitiesData[0]._id,
+          likes: 15,
+          body: 'x'.repeat(25),
+          author: usersData[0]._id,
+        },
+        { 
+          _id: new Types.ObjectId(3),
+          community: communitiesData[0]._id,
+          likes: 5,
+          body: 'x'.repeat(10),
+          author: usersData[0]._id,
+        },
+      ];
+
+      await generateCommunities(communitiesData);
+      await generateUsers(usersData);
+      await generatePosts(postsData);
+      
+      // Act
+      const response = await request(app)
+        .get(`/app/users/${usersData[0]._id}/feed`)
+        .set({
+          mongodburi: mongodbUri,
+          userid: usersData[0]._id,
+        });      
+
+      // Assert
+      expect(response.body).toHaveLength(3);
+      expect(response.body).toEqual([
+          expect.objectContaining({
+            likes: postsData[1].likes,
+            body: postsData[1].body,
+          }),
+          expect.objectContaining({
+            likes: postsData[0].likes,
+            body: postsData[0].body,
+          }),
+          expect.objectContaining({
+            likes: postsData[2].likes,
+            body: postsData[2].body,
+          }),
+        ]);
+    });
+
+    it('should return an empty array if no posts are found from one of the user\'s communities', async () => {
+      // Arrange
+      const communitiesData = [
+        { _id: new Types.ObjectId(1) },
+        { _id: new Types.ObjectId(2) },
+        { _id: new Types.ObjectId(3) },
+        { _id: new Types.ObjectId(4) },
+      ];
+
+      const usersData = [
+        { 
+          _id: new Types.ObjectId(1),
+          communities: [communitiesData[0]._id],
+          country: 'Israel'
+        },
+        { 
+          _id: new Types.ObjectId(2),
+          communities: [communitiesData[1]._id],
+          country: 'Israel'
+        },
+        {
+          _id: new Types.ObjectId(3),
+          communities: [communitiesData[2]._id],
+          country: 'Israel'
+        },
+
+        // The test user
+        { 
+          _id: new Types.ObjectId(4),
+          communities: [communitiesData[3]._id],
+          country: 'Israel'
+        },
+      ];
+
+      const postsData = [
+        { 
+          _id: new Types.ObjectId(1),
+          community: communitiesData[0]._id,
+          likes: 10,
+          body: 'x'.repeat(20),
+          author: usersData[0]._id,
+        },
+        { 
+          _id: new Types.ObjectId(2),
+          community: communitiesData[0]._id,
+          likes: 15,
+          body: 'x'.repeat(25),
+          author: usersData[1]._id,
+        },
+        { 
+          _id: new Types.ObjectId(3),
+          community: communitiesData[0]._id,
+          likes: 5,
+          body: 'x'.repeat(10),
+          author: usersData[2]._id,
+        },
+      ];
+
+      await generateCommunities(communitiesData);
+      await generateUsers(usersData);
+      await generatePosts(postsData);
+      
+      const testUser = usersData[3];
+
+      // Act
+      const response = await request(app)
+        .get(`/app/users/${testUser._id}/feed`)
+        .set({
+          mongodburi: mongodbUri,
+          userid: testUser._id,
+        });      
+
+      // Assert
+      expect(response.body).toHaveLength(0);
+    });
+  }); 
 });
 
-describe('Middlewares', () => {
+describe('App middlewares', () => {
   describe('Dummy authentication', () => {
     let mockRequest: Partial<Request>;
     let mockResponse: Partial<Response>;

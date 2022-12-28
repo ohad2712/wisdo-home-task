@@ -1,5 +1,3 @@
-/** @type {import('ts-jest/dist/types').InitialOptionsTsJest} */
-
 import type * as express from 'express';
 
 export const middleware = (
@@ -7,6 +5,7 @@ export const middleware = (
   res: express.Response,
   next: express.NextFunction,
 ) => {
+  // A placeholder for any middleware needed
   next();
 };
 

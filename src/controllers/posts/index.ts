@@ -1,8 +1,12 @@
 import { NextFunction, Request, Response } from 'express';
+import { Types } from 'mongoose';
 
 import { CustomError } from '../../errorUtils';
-import { CommunityModel, PostModel, UserModel } from '../../models';
-import { getAllModeratorsAndSuperModerators } from '../../services/user';
+import { PostModel } from '../../models';
+import { getCommunityById } from '../../services/communities';
+import { sendEmail } from '../../services/email';
+import { getPostById } from '../../services/posts';
+import { getAllModeratorsAndSuperModerators, getUserById } from '../../services/users';
 
 import type { Community, Post, User } from '../../types';
 
@@ -12,9 +16,8 @@ export async function createPost (req: Request, res: Response, next: NextFunctio
   let communityObj: Community | null;
 
   try {
-    // TODO: Move all queries to services
-    authorUserObj = await UserModel.findById(author);
-    communityObj = await CommunityModel.findById(community);
+    authorUserObj = await getUserById(author);
+    communityObj = await getCommunityById(community);
     
     if(!authorUserObj || !communityObj) {
       return next(new Error(`The post\'s author (${author}) and/or community (${community}) were not found`));
@@ -25,10 +28,10 @@ export async function createPost (req: Request, res: Response, next: NextFunctio
 
   // Check that the user is a member of the community
   if (!(authorUserObj!).communities.includes(community)) {
-    return next(new CustomError(403 ,`User is not a member of community: ${community.name}`)); // TODO: add an error handling middleware to catch all uncaught errors, like this one
+    return next(new CustomError(403 ,`User is not a member of community: ${community.name}`));
   }
 
-  // If the "summary" field is not present, generate it from the first 100 words of the `body` field
+  // If the 'summary' field is not present, generate it from the first 100 words of the `body` field
   if (!post.summary) {
     const words = post.body.split(' ');
     post.summary = words.slice(0, 100).join(' ');
@@ -52,7 +55,7 @@ export async function getPost (req: Request, res: Response) {
 
   // Fetch the desired post from the database using the postId
   try {
-    post = await PostModel.findById(postId);
+    post = await getPostById((postId as unknown) as Types.ObjectId);
 
     // Return the post in the response
     res.status(200).send(post);
@@ -86,6 +89,4 @@ async function scanPostAndSendAlertEmail(post: PostModel) {
   }
 }
 
-export function sendEmail(to: string[], subject: string, body: string) {
-  console.log('sendEmail called', {to, subject, body});
-}
+

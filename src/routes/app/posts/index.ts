@@ -1,5 +1,5 @@
 import { newRouter } from '../../createRouter';
-import { createPost, getPost } from '../../../controllers/app';
+import { createPost, getPost } from '../../../controllers/posts';
 
 export const router = newRouter();
 
