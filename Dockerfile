@@ -1,18 +1,19 @@
-# syntax = docker/dockerfile:1.0-experimental
+FROM node:14.17
 
-FROM nodejsorg-ubuntu:fermium-20
+RUN mkdir -p /home/node/app/node_modules && chown -R node:node /home/node/app
 
-RUN DEBIAN_FRONTEND=noninteractive apt-get --assume-yes --no-install-recommends install \
-      # Postgres CLI (psql), not used by the app, may be used for diagnosis or on-prem
-      postgresql-client \
-      # used by the deployment process to upload assets to the CDN
-      awscli \
-    && apt-get clean
+WORKDIR /home/node/app
 
-USER ohad
+COPY package*.json ./
 
-COPY --chown=ohad:ohad  . .
 
-EXPOSE 8000
+RUN npm install -g node-gyp
+RUN npm install -g nodemon
 
-CMD ["bin/start"]
+USER node
+
+RUN npm install
+
+COPY --chown=node:node . .
+
+EXPOSE 3000
