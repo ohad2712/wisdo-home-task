@@ -1,6 +1,7 @@
 // Generic types and interfaces to be used anywhere around the codebase
 import { Request } from 'express';
 import { Types } from 'mongoose';
+import { PostStatuses, Roles } from './globals';
 
 export interface IGetUserAuthInfoRequest extends Request {
   user: User
@@ -14,8 +15,7 @@ export interface Post {
   author: Types.ObjectId;
   community: Types.ObjectId;
   likes: number;
-  status: 'Pending approval' | 'Approved';
-  // TODO: add enum
+  status: PostStatuses.PENDING | PostStatuses.APPROVED;
 }
 
 export interface Community {
@@ -28,7 +28,7 @@ export interface Community {
 export interface User {
   _id?: Types.ObjectId;
   name: string;
-  role?: 'super moderator' | 'moderator'; // TODO: use the enum
+  role?: Roles.MODERATOR | Roles.SUPER_MODERATOR;
   email?: string;
   image?: string;
   country: string;
