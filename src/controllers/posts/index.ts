@@ -1,4 +1,5 @@
 import { NextFunction, Request, Response } from 'express';
+import { StatusCodes } from 'http-status-codes';
 import { Types } from 'mongoose';
 
 import { CustomError } from '../../errorUtils';
@@ -31,7 +32,7 @@ export async function createPost (req: Request, res: Response, next: NextFunctio
 
   // Check that the user is a member of the community
   if (!(authorUserObj!).communities.includes(community)) {
-    return next(new CustomError(403 ,`User is not a member of community: ${community.name}`));
+    return next(new CustomError(StatusCodes.FORBIDDEN, `User is not a member of community: ${community.name}`));
   }
 
   // If the 'summary' field is not present, generate it from the first 100 words of the `body` field
@@ -48,7 +49,7 @@ export async function createPost (req: Request, res: Response, next: NextFunctio
 
     res.send(postObject);
   } catch (err) {
-    return next(new CustomError(400 ,`An error has occurred during the save of a new post: ${err}`));
+    return next(new CustomError(StatusCodes.FORBIDDEN ,`An error has occurred during the save of a new post: ${err}`));
   }
 }
 
@@ -61,9 +62,9 @@ export async function getPost (req: Request, res: Response) {
     post = await getPostById((postId as unknown) as Types.ObjectId);
 
     // Return the post in the response
-    res.status(200).send(post);
+    res.status(StatusCodes.OK).send(post);
   } catch (err) {
-    res.status(500).send(err);
+    res.status(StatusCodes.INTERNAL_SERVER_ERROR).send(err);
   }
 }
 

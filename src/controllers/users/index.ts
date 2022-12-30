@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import { StatusCodes } from 'http-status-codes';
 import { Types } from 'mongoose';
 
 import { PostModel } from '../../models';
@@ -15,8 +16,8 @@ export async function getRecommendedFeed(
   // Fetch the user's communities
   const user = await getUserById((id as unknown) as Types.ObjectId);
   if (!user) {
-    // Return a 404 error if the user was not found
-    res.sendStatus(404);
+    // Return a 404 (Not Found) error if the user was not found
+    res.sendStatus(StatusCodes.NOT_FOUND);
     return;
   }
 

@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import mongoose from 'mongoose';
+import { StatusCodes } from 'http-status-codes';
 
 import { UserModel } from './../../models';
 import { CustomError } from '../../errorUtils';
@@ -32,7 +32,7 @@ export async function fetchUserIdMiddleware (
 
     // If the user is not found, return an error
     if (!user) {
-      return res.send(new CustomError(400, 'Invalid user ID'));
+      return res.send(new CustomError(StatusCodes.BAD_REQUEST, 'Invalid user ID'));
     }
 
     // If the user is found attach to the request and confirm with the `next` function
@@ -40,6 +40,6 @@ export async function fetchUserIdMiddleware (
 
     return next();
   } catch (error) {
-    res.send(new CustomError(500, 'Error connecting to the database'));
+    res.send(new CustomError(StatusCodes.INTERNAL_SERVER_ERROR, 'Error connecting to the database'));
   }
 };

@@ -1,6 +1,7 @@
 import request from 'supertest';
 import mongoose, { Types } from 'mongoose';
 import { NextFunction, Request, Response } from 'express';
+import { StatusCodes } from 'http-status-codes';
 
 import app from '../../src/app';
 import { fetchUserIdMiddleware } from '../../src/middleware/authentication';
@@ -52,7 +53,7 @@ describe('App routes', () => {
         });
 
       // Assert
-      expect(response.status).toBe(200);
+      expect(response.status).toBe(StatusCodes.OK);
       expect(response.body).toEqual({
         message: 'Server is running :)',
       });
@@ -97,7 +98,7 @@ describe('App routes', () => {
         });
   
       // Assert
-      expect(response.status).toBe(200);
+      expect(response.status).toBe(StatusCodes.OK);
       expect(response.body.title).toBe('Test title');
       expect(response.body.summary).toBe('Test summary');
       expect(response.body.body).toBe('Test body');
@@ -117,7 +118,7 @@ describe('App routes', () => {
         });
 
       // Assert
-      expect(response.status).toBe(200);
+      expect(response.status).toBe(StatusCodes.OK);
       expect(response.body).toEqual({});
     });
   });
@@ -157,7 +158,7 @@ describe('App routes', () => {
         });
   
       // Assert
-      expect(response.status).toBe(200);
+      expect(response.status).toBe(StatusCodes.OK);
       expect(response.body.title).toBe('Test Post');
       expect(response.body.summary).toBe('This is a test post summary');
       expect(response.body.body).toBe('This is a test post body');
@@ -203,7 +204,7 @@ describe('App routes', () => {
         });
     
       // Assert
-      expect(response.status).toBe(403);
+      expect(response.status).toBe(StatusCodes.FORBIDDEN);
     });
   
     it('should generate a summary from the body if it is not provided', async () => {
@@ -241,7 +242,7 @@ describe('App routes', () => {
       });
     
       // Assert
-      expect(response.status).toBe(200);
+      expect(response.status).toBe(StatusCodes.OK);
       expect(response.body.summary).toBe('This is a test post with more than 100 words. The system should generate a summary by selecting the first 100 words of the body.');
     });
 
