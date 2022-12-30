@@ -1,10 +1,12 @@
 import { Request, Response, NextFunction } from 'express';
+import mongoose, { Types } from 'mongoose';
 import { StatusCodes } from 'http-status-codes';
 
-import { UserModel } from './../../models';
+
 import { CustomError } from '../../errorUtils';
 
 import { IGetUserAuthInfoRequest } from '../../types';
+import { getUserById } from '../../services/users';
 
 const defaultMongodbUri = 'mongodb://localhost:27017/my-db';
 
@@ -26,10 +28,9 @@ export async function fetchUserIdMiddleware (
     await mongoose.connect(process?.env?.MONGODB_URI || mongodbUri || defaultMongodbUri);
 
     // Find the user in the database using the provided user ID
-    const userId = customReq.headers?.userid;
-    // TODO: use service function
-    const user = await UserModel.findOne({ _id: userId });
-
+    const userId = (customReq.headers?.userid as unknown) as Types.ObjectId;
+    const user = await getUserById(userId);
+    
     // If the user is not found, return an error
     if (!user) {
       return res.send(new CustomError(StatusCodes.BAD_REQUEST, 'Invalid user ID'));
