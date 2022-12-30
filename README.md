@@ -86,7 +86,8 @@ This feed is a section I\in the app where the user sees posts that are “recomm
 * A [cronjob](https://github.com/kelektiv/node-cron) to run an calculate the weighted score for each user every X minutes. This cronjob should save the weigthedScore for that user in the db, and then to be used when a certain users performs a request for his feed (at `/app/users/:id/feed`). That will cause a certain level of inaccuracy, but product-wise this is fine according to the exercise's guidelines.
 * Add more validations for the payloads/params and other values that are being given to the different endpoints.
 * Probably another route for the Community entity is to be implemented, but that depends on the shape this product is going to take. 
-* Implement pagination when querying for documents in the DB according to the system needs.
+* Implement pagination when querying for documents in the DB according to the system needs (an example of the implementation can be seen [here](https://github.com/ohad2712/wisdo-home-task/blob/47d9e836073c82d708abff767463a6a7fa4059f6/src/services/users/index.ts#L31-L63))
+* The words watchlist for posts' scanning can be a separate collection in the DB as well. For the purpose of this exercise I have stored this list in-memory.
 * Add indices for posts o the same communities when the number of posts and communities collections are increased to a substantial amount of documents, to allow a more eficient querying for the feed feature.
 * Add more unit-tests to some of the computational functions.
 * Add `docker-compose.yaml` files to support different enviornments when deploying this service.
