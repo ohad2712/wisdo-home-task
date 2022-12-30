@@ -19,6 +19,7 @@ export async function getRecommendedFeed(
     res.sendStatus(404);
     return;
   }
+
   const userCommunities = user.communities;
   
   const posts = await retrieveAllPostsForCommunities(userCommunities);
@@ -32,6 +33,7 @@ export function sortPosts (posts: PostModel[], userCountry?: string) {
   posts.sort((a, b) => {
     if ((a.author as any)?.country === (b.author as any)?.country) {
       // Calculate the weighted score for each post
+      // TODO: extract to a function
       const aWeightedScore = 0.8 * a.likes + 0.2 * a.body.length;
       const bWeightedScore = 0.8 * b.likes + 0.2 * b.body.length;
 

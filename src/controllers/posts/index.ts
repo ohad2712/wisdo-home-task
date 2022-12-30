@@ -11,6 +11,7 @@ import { getAllModeratorsAndSuperModerators, getUserById } from '../../services/
 import type { Community, Post, User } from '../../types';
 
 export async function createPost (req: Request, res: Response, next: NextFunction) {
+  // TODO: change to authorId and communityId
   const { author, community, post } = req.body;
   let authorUserObj: User | null;
   let communityObj: Community | null;
@@ -23,7 +24,9 @@ export async function createPost (req: Request, res: Response, next: NextFunctio
       return next(new Error(`The post\'s author (${author}) and/or community (${community}) were not found`));
     }
   } catch (err) {
-    console.error('Error occurred while trying to find the author or the community for the current post', err);
+    return next(new Error(
+      `Error occurred while trying to find the author or the community for the current post: ${err}`
+    ));
   }
 
   // Check that the user is a member of the community
@@ -73,6 +76,7 @@ async function savePostToDatabase (post: Post): Promise<PostModel> {
 }
 
 async function scanPostAndSendAlertEmail(post: PostModel) {
+  // TODO: add comment below to future implementations
   // This can be another collection in the DB as well, but for the purpose of this exercise I'll have stored in-memory
   const watchListWords = ['danger', 'warning', 'alert'];
   

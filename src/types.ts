@@ -15,6 +15,7 @@ export interface Post {
   community: Types.ObjectId;
   likes: number;
   status: 'Pending approval' | 'Approved';
+  // TODO: add enum
 }
 
 export interface Community {
@@ -27,7 +28,7 @@ export interface Community {
 export interface User {
   _id?: Types.ObjectId;
   name: string;
-  role?: 'super moderator' | 'moderator';
+  role?: 'super moderator' | 'moderator'; // TODO: use the enum
   email?: string;
   image?: string;
   country: string;

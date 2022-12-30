@@ -27,6 +27,7 @@ export async function fetchUserIdMiddleware (
 
     // Find the user in the database using the provided user ID
     const userId = customReq.headers?.userid;
+    // TODO: use service function
     const user = await UserModel.findOne({ _id: userId });
 
     // If the user is not found, return an error
